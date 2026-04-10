@@ -3,7 +3,7 @@ import SwiftUI
 import ApplicationServices
 
 @MainActor
-final class AppDelegate: NSObject, NSApplicationDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var panel: OverlayPanel?
     private var model: OverlayModel?
     private var capturedWindow: AXUIElement?
@@ -13,6 +13,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private lazy var boopSound: NSSound? = NSSound(named: NSSound.Name("Tink"))
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        welcome.onGranted = { [weak self] in self?.refreshStatusItemIcon() }
         setupStatusItem()
         if !WindowMover.ensureTrusted(prompt: false) {
             welcome.show()
@@ -32,23 +33,48 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func setupStatusItem() {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        if let button = item.button {
-            button.image = NSImage(
-                systemSymbolName: "rectangle.3.group",
-                accessibilityDescription: "WindowHop"
-            )
-        }
         let menu = NSMenu()
-        menu.addItem(withTitle: "Show Overlay", action: #selector(showOverlayAction), keyEquivalent: "")
-            .target = self
-        menu.addItem(NSMenuItem.separator())
-        menu.addItem(withTitle: "Quit WindowHop", action: #selector(quitAction), keyEquivalent: "q")
-            .target = self
+        menu.delegate = self
         item.menu = menu
         statusItem = item
+        refreshStatusItemIcon()
+    }
+
+    private func refreshStatusItemIcon() {
+        guard let button = statusItem?.button else { return }
+        let trusted = WindowMover.ensureTrusted(prompt: false)
+        let symbol = trusted ? "rectangle.3.group" : "exclamationmark.triangle.fill"
+        let desc = trusted ? "WindowHop" : "WindowHop — Accessibility permission needed"
+        button.image = NSImage(systemSymbolName: symbol, accessibilityDescription: desc)
+        button.toolTip = desc
+    }
+
+    // MARK: - NSMenuDelegate
+
+    /// Rebuilds the menu every time it opens so it always reflects current
+    /// permission state without needing a background poller.
+    func menuNeedsUpdate(_ menu: NSMenu) {
+        refreshStatusItemIcon()
+        menu.removeAllItems()
+
+        let trusted = WindowMover.ensureTrusted(prompt: false)
+        if trusted {
+            let show = NSMenuItem(title: "Show Overlay", action: #selector(showOverlayAction), keyEquivalent: "")
+            show.target = self
+            menu.addItem(show)
+        } else {
+            let grant = NSMenuItem(title: "Grant Accessibility…", action: #selector(showWelcomeAction), keyEquivalent: "")
+            grant.target = self
+            menu.addItem(grant)
+        }
+        menu.addItem(NSMenuItem.separator())
+        let quit = NSMenuItem(title: "Quit WindowHop", action: #selector(quitAction), keyEquivalent: "q")
+        quit.target = self
+        menu.addItem(quit)
     }
 
     @objc private func showOverlayAction() { showOverlay() }
+    @objc private func showWelcomeAction() { welcome.show() }
     @objc private func quitAction() { NSApp.terminate(nil) }
 
     // MARK: - Overlay

@@ -8,6 +8,9 @@ final class WelcomeWindowController {
 
     var isVisible: Bool { window?.isVisible == true }
 
+    /// Fired exactly once per show() cycle, when polling detects the grant.
+    var onGranted: (() -> Void)?
+
     func show() {
         if let existing = window, existing.isVisible {
             existing.makeKeyAndOrderFront(nil)
@@ -53,6 +56,7 @@ final class WelcomeWindowController {
     private func checkNow() {
         if WindowMover.ensureTrusted(prompt: false) {
             dismiss()
+            onGranted?()
         }
     }
 
