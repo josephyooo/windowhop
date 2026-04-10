@@ -2,18 +2,24 @@ import AppKit
 import SwiftUI
 import ApplicationServices
 
+@MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var panel: OverlayPanel?
     private var model: OverlayModel?
     private var capturedWindow: AXUIElement?
     private var statusItem: NSStatusItem?
+    private let welcome = WelcomeWindowController()
+
+    private lazy var boopSound: NSSound? = NSSound(named: NSSound.Name("Tink"))
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        WindowMover.ensureTrusted(prompt: true)
         setupStatusItem()
-        // First launch: show the overlay immediately so the user gets feedback.
-        // Subsequent triggers come through `application(_:open:)` via the URL scheme.
-        showOverlay()
+        if !WindowMover.ensureTrusted(prompt: false) {
+            welcome.show()
+        }
+        // Do NOT show the overlay here — on first launch the Accessibility prompt
+        // would cover it and dismiss it as the user clicks around, making the
+        // whole thing flash by invisibly. Subsequent triggers come via URL scheme.
     }
 
     func application(_ application: NSApplication, open urls: [URL]) {
@@ -50,6 +56,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func showOverlay() {
         // If already visible, just refresh state.
         dismissOverlay()
+
+        // Hard gate: no Accessibility → no overlay. Show setup UI instead,
+        // otherwise the panel appears but nothing the user does will work.
+        guard WindowMover.ensureTrusted(prompt: false) else {
+            playError()
+            welcome.show()
+            return
+        }
 
         // Capture BEFORE showing the panel — non-activating panel won't become
         // the frontmost app, but the capture has to happen first regardless.
@@ -103,8 +117,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func playError() {
-        if let sound = NSSound(named: NSSound.Name("Funk")) {
-            sound.play()
+        if let boop = boopSound {
+            boop.stop()       // rewind if still playing from a prior invocation
+            boop.play()
         } else {
             NSSound.beep()
         }
