@@ -15,12 +15,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         welcome.onGranted = { [weak self] in self?.refreshStatusItemIcon() }
         setupStatusItem()
-        if !WindowMover.ensureTrusted(prompt: false) {
+        // nudgeTCCAndCheck registers us in the Accessibility list on first launch
+        // and also returns the current trusted state — one call, two jobs.
+        if !WindowMover.nudgeTCCAndCheck() {
             welcome.show()
         }
-        // Do NOT show the overlay here — on first launch the Accessibility prompt
-        // would cover it and dismiss it as the user clicks around, making the
-        // whole thing flash by invisibly. Subsequent triggers come via URL scheme.
     }
 
     func application(_ application: NSApplication, open urls: [URL]) {
@@ -43,10 +42,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func refreshStatusItemIcon() {
         guard let button = statusItem?.button else { return }
         let trusted = WindowMover.ensureTrusted(prompt: false)
-        let symbol = trusted ? "rectangle.3.group" : "exclamationmark.triangle.fill"
-        let desc = trusted ? "WindowHop" : "WindowHop — Accessibility permission needed"
-        button.image = NSImage(systemSymbolName: symbol, accessibilityDescription: desc)
-        button.toolTip = desc
+        if trusted {
+            let img = WindowHopIcon.makeNSImage(size: 18, style: .template)
+            button.image = img
+            button.toolTip = "WindowHop"
+        } else {
+            let desc = "WindowHop — Accessibility permission needed"
+            button.image = NSImage(systemSymbolName: "exclamationmark.triangle.fill", accessibilityDescription: desc)
+            button.toolTip = desc
+        }
     }
 
     // MARK: - NSMenuDelegate
@@ -85,7 +89,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         // Hard gate: no Accessibility → no overlay. Show setup UI instead,
         // otherwise the panel appears but nothing the user does will work.
-        guard WindowMover.ensureTrusted(prompt: false) else {
+        guard WindowMover.nudgeTCCAndCheck() else {
             playError()
             welcome.show()
             return

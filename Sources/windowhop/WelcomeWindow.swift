@@ -32,13 +32,15 @@ final class WelcomeWindowController {
 
         let view = WelcomeView(
             openSettings: { [weak self] in self?.openAccessibilitySettings() },
-            recheck: { [weak self] in self?.checkNow() }
+            recheck: { [weak self] in self?.checkNow() },
+            relaunch: { [weak self] in self?.relaunchApp() }
         )
         w.contentView = NSHostingView(rootView: view)
         self.window = w
 
-        // Kick the system prompt so WindowHop appears in the Accessibility list.
-        WindowMover.ensureTrusted(prompt: true)
+        // Silently register the process in the Accessibility list without
+        // popping a system dialog — our welcome window IS the dialog.
+        WindowMover.nudgeTCCAndCheck()
 
         w.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
@@ -53,8 +55,11 @@ final class WelcomeWindowController {
         }
     }
 
+    /// Polled and called from button actions. Uses nudgeTCCAndCheck so that
+    /// if the user has deleted the TCC entry in Settings, it gets re-added
+    /// silently on the next tick and the entry reappears in the list.
     private func checkNow() {
-        if WindowMover.ensureTrusted(prompt: false) {
+        if WindowMover.nudgeTCCAndCheck() {
             dismiss()
             onGranted?()
         }
@@ -67,8 +72,22 @@ final class WelcomeWindowController {
     }
 
     private func openAccessibilitySettings() {
+        // Nudge *right before* opening the pane so the entry is registered
+        // (or re-registered after the user deleted it) when Settings reads
+        // the Accessibility list.
+        WindowMover.nudgeTCCAndCheck()
         if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
             NSWorkspace.shared.open(url)
+        }
+    }
+
+    private func relaunchApp() {
+        let url = Bundle.main.bundleURL
+        let config = NSWorkspace.OpenConfiguration()
+        config.createsNewApplicationInstance = true
+        NSWorkspace.shared.openApplication(at: url, configuration: config) { _, _ in }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            NSApp.terminate(nil)
         }
     }
 }
@@ -76,6 +95,7 @@ final class WelcomeWindowController {
 private struct WelcomeView: View {
     let openSettings: () -> Void
     let recheck: () -> Void
+    let relaunch: () -> Void
 
     var body: some View {
         VStack(spacing: 14) {
@@ -100,6 +120,11 @@ private struct WelcomeView: View {
                 Button("I've Enabled It", action: recheck)
             }
             .padding(.top, 4)
+
+            Button("WindowHop not showing in the list? Quit & Relaunch", action: relaunch)
+                .buttonStyle(.link)
+                .font(.caption)
+                .padding(.top, 2)
         }
         .padding(24)
         .frame(width: 460)

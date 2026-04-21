@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <!-- Background gradient in outer (un-transformed) user space. -->
+    <linearGradient id="bg" x1="0" y1="108" x2="0" y2="916" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#7592b8"/>
+      <stop offset="1" stop-color="#4a6b94"/>
+    </linearGradient>
+    <!-- Same gradient but in the *inner* (1.35× scaled) user space. y1/y2
+         are pre-mapped through the inverse of the icon-content transform so
+         the inner gradient lines up exactly with the background tile after
+         the group transform is applied. Without this, padding fills inside
+         the transformed group sample the gradient at the wrong y and look
+         off-color from the tile around them. -->
+    <linearGradient id="bgInner" x1="0" y1="220.7" x2="0" y2="819.3" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#7592b8"/>
+      <stop offset="1" stop-color="#4a6b94"/>
+    </linearGradient>
+  </defs>
+
+  <!-- White border underneath the blue tile, no gap between them -->
+  <rect x="80" y="80" width="864" height="864" rx="208" ry="208" fill="#ffffff"/>
+
+  <!-- Blue rounded-square tile -->
+  <rect x="108" y="108" width="808" height="808" rx="180" ry="180"
+        fill="url(#bg)"/>
+
+  <!-- Icon content scaled 1.35× about the window's center, then centered on
+       the tile (window-only centering, ignoring the trail/arrow). -->
+  <g transform="translate(512 512) scale(1.35) translate(-485 -520)">
+
+    <!-- Window: a single solid white rounded rect. -->
+    <rect x="270" y="360" width="430" height="320" rx="36" ry="36" fill="#ffffff"/>
+
+    <!-- Body cutout: punches the gradient back through the lower part of
+         the window. Square top corners (= title-bar divider), bottom
+         corners r=22 concentric with the outer rx=36. -->
+    <path d="M 284 438 H 686 V 644 A 22 22 0 0 1 664 666 H 306
+             A 22 22 0 0 1 284 644 Z"
+          fill="url(#bgInner)"/>
+
+    <!-- Trail padding -->
+    <path d="M 310 630 C 400 490 550 400 700 320"
+          fill="none" stroke="url(#bgInner)" stroke-width="44"
+          stroke-linecap="round"/>
+
+    <!-- Dashed motion-trail -->
+    <path d="M 310 630 C 400 490 550 400 700 320"
+          fill="none" stroke="#ffffff" stroke-width="24"
+          stroke-linecap="round" stroke-dasharray="14 38"/>
+
+    <!-- Arrowhead padding -->
+    <path d="M 715 309 L 625 310 L 664 384 Z"
+          fill="url(#bgInner)" stroke="url(#bgInner)" stroke-width="48"
+          stroke-linejoin="round" stroke-linecap="round"/>
+
+    <!-- Filled arrowhead. Pulled back along its axis (~35px) so the padded
+         tip stays well inside the tile's rounded corner instead of clipping
+         against the outer border. -->
+    <path d="M 715 309 L 625 310 L 664 384 Z"
+          fill="#ffffff"/>
+
+  </g>
+</svg>

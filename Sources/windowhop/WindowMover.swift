@@ -71,4 +71,17 @@ enum WindowMover {
         let opts = [key: prompt] as CFDictionary
         return AXIsProcessTrustedWithOptions(opts)
     }
+
+    /// Forces TCC to (re)register the process in the Accessibility list without
+    /// showing the system prompt. `AXIsProcessTrusted*` only reads the cache;
+    /// exercising a real AX function on the system-wide element is what causes
+    /// TCC to add the entry — or re-add it after the user manually deleted it.
+    /// Returns the current trusted state for convenience.
+    @discardableResult
+    static func nudgeTCCAndCheck() -> Bool {
+        let sys = AXUIElementCreateSystemWide()
+        var value: AnyObject?
+        _ = AXUIElementCopyAttributeValue(sys, kAXFocusedUIElementAttribute as CFString, &value)
+        return AXIsProcessTrusted()
+    }
 }
