@@ -6,6 +6,8 @@ A tiny macOS menu bar agent for moving the focused window to another display. Tr
 
 Built for multi-display setups where dragging a window across screens or remembering Mission Control corners is more friction than the move itself.
 
+![WindowHop overlay showing a three-display arrangement with the built-in Retina display selected](docs/overlay.png)
+
 ## How it works
 
 1. Hotkey fires `open -g windowhop://show` (via Raycast, Shortcuts, or any launcher that can run a shell command).
