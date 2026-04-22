@@ -51,7 +51,7 @@ cp "${ICNS_PATH}" "${APP_BUNDLE}/Contents/Resources/AppIcon.icns"
 rm -rf "${ICON_WORK}"
 
 echo "→ ad-hoc codesign"
-codesign --force --deep --sign - "${APP_BUNDLE}"
+codesign --force --sign - "${APP_BUNDLE}"
 
 echo
 echo "✓ built ${PWD}/${APP_BUNDLE}"
