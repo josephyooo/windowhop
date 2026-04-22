@@ -5,9 +5,11 @@ final class OverlayModel: ObservableObject {
     let displays: [DisplayInfo]
     @Published var selectedID: CGDirectDisplayID
 
-    init(displays: [DisplayInfo]) {
+    init(displays: [DisplayInfo], initialSelection: CGDirectDisplayID? = nil) {
         self.displays = displays
-        let initial = displays.first(where: { $0.isPrimary })?.id ?? displays.first!.id
+        let initial = initialSelection.flatMap { id in displays.first(where: { $0.id == id })?.id }
+            ?? displays.first(where: { $0.isPrimary })?.id
+            ?? displays.first!.id
         self.selectedID = initial
     }
 

@@ -102,7 +102,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let displays = DisplayInfo.all()
         guard !displays.isEmpty else { NSSound.beep(); return }
 
-        let model = OverlayModel(displays: displays)
+        let hostScreen = NSScreen.screenForCapturedWindow(capturedWindow)
+            ?? NSScreen.screenWithMouse()
+            ?? NSScreen.main
+            ?? NSScreen.screens.first!
+        let hostID = (hostScreen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value
+
+        let model = OverlayModel(displays: displays, initialSelection: hostID)
         self.model = model
 
         let content = OverlayView(model: model) { [weak self] display in
@@ -125,11 +131,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         panel.onCancel = { [weak self] in self?.dismissOverlay() }
 
-        let host = NSScreen.screenForCapturedWindow(capturedWindow)
-            ?? NSScreen.screenWithMouse()
-            ?? NSScreen.main
-            ?? NSScreen.screens.first!
-        let f = host.frame
+        let f = hostScreen.frame
         panel.setFrameOrigin(NSPoint(
             x: f.origin.x + (f.width - size.width) / 2,
             y: f.origin.y + (f.height - size.height) / 2
