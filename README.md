@@ -9,7 +9,7 @@ Built for multi-display setups where dragging a window across screens or remembe
 ## How it works
 
 1. Hotkey fires `open -g windowhop://show` (via Raycast, Shortcuts, or any launcher that can run a shell command).
-2. WindowHop captures the currently focused window, then shows a non-activating overlay with each display drawn in its real spatial arrangement.
+2. WindowHop captures the currently focused window, then shows a non-activating overlay with each display drawn in its real spatial arrangement. The overlay appears on the same display as the focused window (falling back to the cursor's display, then the main display, if the window's frame can't be read).
 3. Pick a display with arrow keys + return, or press its number. The window is moved there via the Accessibility API and centered at a reasonable size.
 4. Fullscreen / non-movable windows play a Tink and bail.
 
