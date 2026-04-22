@@ -15,7 +15,22 @@ Built for multi-display setups where dragging a window across screens or remembe
 
 ## Install
 
-Requires macOS 14+ and a Swift toolchain.
+Requires macOS 14+.
+
+### From a release (recommended)
+
+Grab `WindowHop.zip` from the [latest release](https://github.com/josephyooo/windowhop/releases/latest), then:
+
+```sh
+unzip WindowHop.zip
+xattr -dr com.apple.quarantine WindowHop.app   # ad-hoc signed; clears Gatekeeper
+mv WindowHop.app /Applications/
+open /Applications/WindowHop.app               # first launch — grant Accessibility
+```
+
+### From source
+
+Requires a Swift toolchain.
 
 ```sh
 ./build.sh
