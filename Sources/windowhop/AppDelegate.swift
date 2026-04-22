@@ -143,7 +143,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         switch WindowMover.attemptMove(capturedWindow, to: display) {
         case .moved:
             break
-        case .noWindow, .fullscreen:
+        case .noWindow, .fullscreen, .failed:
             playError()
         }
         dismissOverlay()

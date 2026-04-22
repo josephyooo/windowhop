@@ -5,6 +5,7 @@ enum MoveResult {
     case moved
     case noWindow
     case fullscreen
+    case failed
 }
 
 enum WindowMover {
@@ -45,8 +46,7 @@ enum WindowMover {
     static func attemptMove(_ window: AXUIElement?, to display: DisplayInfo) -> MoveResult {
         guard let window else { return .noWindow }
         if isFullscreen(window) { return .fullscreen }
-        move(window, to: display)
-        return .moved
+        return move(window, to: display) ? .moved : .failed
     }
 
     /// Native-fullscreen windows live on their own Space and reject AX position/size
@@ -60,7 +60,7 @@ enum WindowMover {
     }
 
     /// Centers the window on the target display at ~70% of the visible frame.
-    private static func move(_ window: AXUIElement, to display: DisplayInfo) {
+    private static func move(_ window: AXUIElement, to display: DisplayInfo) -> Bool {
         let vf = display.visibleFrame
         let w = min(1600, vf.width * 0.72)
         let h = min(1000, vf.height * 0.78)
@@ -70,14 +70,15 @@ enum WindowMover {
         var origin = CGPoint(x: x, y: y)
         var size = CGSize(width: w, height: h)
         guard let posValue = AXValueCreate(.cgPoint, &origin),
-              let sizeValue = AXValueCreate(.cgSize, &size) else { return }
+              let sizeValue = AXValueCreate(.cgSize, &size) else { return false }
 
         // Set position first (gets the window onto the new display),
         // then size, then position again — some apps clamp size against the
         // *source* display's bounds on the first call, producing a half-placed window.
-        AXUIElementSetAttributeValue(window, kAXPositionAttribute as CFString, posValue)
-        AXUIElementSetAttributeValue(window, kAXSizeAttribute as CFString, sizeValue)
-        AXUIElementSetAttributeValue(window, kAXPositionAttribute as CFString, posValue)
+        let setPositionStart = AXUIElementSetAttributeValue(window, kAXPositionAttribute as CFString, posValue)
+        let setSize = AXUIElementSetAttributeValue(window, kAXSizeAttribute as CFString, sizeValue)
+        let setPositionEnd = AXUIElementSetAttributeValue(window, kAXPositionAttribute as CFString, posValue)
+        return setPositionStart == .success && setSize == .success && setPositionEnd == .success
     }
 
     @discardableResult
