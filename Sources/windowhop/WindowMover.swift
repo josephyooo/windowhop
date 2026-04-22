@@ -27,6 +27,21 @@ enum WindowMover {
         return (window as! AXUIElement)
     }
 
+    /// Returns the window's frame in AX coordinates (top-left origin, measured
+    /// from the top-left of the primary display, y growing downward).
+    static func frame(of window: AXUIElement) -> CGRect? {
+        var posValue: AnyObject?
+        var sizeValue: AnyObject?
+        guard AXUIElementCopyAttributeValue(window, kAXPositionAttribute as CFString, &posValue) == .success,
+              AXUIElementCopyAttributeValue(window, kAXSizeAttribute as CFString, &sizeValue) == .success,
+              let posValue, let sizeValue else { return nil }
+        var origin = CGPoint.zero
+        var size = CGSize.zero
+        guard AXValueGetValue(posValue as! AXValue, .cgPoint, &origin),
+              AXValueGetValue(sizeValue as! AXValue, .cgSize, &size) else { return nil }
+        return CGRect(origin: origin, size: size)
+    }
+
     static func attemptMove(_ window: AXUIElement?, to display: DisplayInfo) -> MoveResult {
         guard let window else { return .noWindow }
         if isFullscreen(window) { return .fullscreen }

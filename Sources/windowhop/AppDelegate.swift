@@ -125,7 +125,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         panel.onCancel = { [weak self] in self?.dismissOverlay() }
 
-        let host = NSScreen.screenWithMouse() ?? NSScreen.main ?? NSScreen.screens.first!
+        let host = NSScreen.screenForCapturedWindow(capturedWindow)
+            ?? NSScreen.screenWithMouse()
+            ?? NSScreen.main
+            ?? NSScreen.screens.first!
         let f = host.frame
         panel.setFrameOrigin(NSPoint(
             x: f.origin.x + (f.width - size.width) / 2,
@@ -168,5 +171,27 @@ private extension NSScreen {
     static func screenWithMouse() -> NSScreen? {
         let mouse = NSEvent.mouseLocation
         return NSScreen.screens.first(where: { NSMouseInRect(mouse, $0.frame, false) })
+    }
+
+    /// Picks the screen that contains the most of the captured window's area.
+    /// AX reports window frames in top-left-origin coordinates measured from
+    /// the primary display; NSScreen uses bottom-left, so convert before
+    /// intersecting.
+    static func screenForCapturedWindow(_ window: AXUIElement?) -> NSScreen? {
+        guard let window, let axRect = WindowMover.frame(of: window) else { return nil }
+        guard let primary = NSScreen.screens.first(where: { $0.frame.origin == .zero })
+                ?? NSScreen.screens.first else { return nil }
+        let primaryHeight = primary.frame.height
+        let nsRect = CGRect(
+            x: axRect.origin.x,
+            y: primaryHeight - (axRect.origin.y + axRect.height),
+            width: axRect.width,
+            height: axRect.height
+        )
+        return NSScreen.screens
+            .map { ($0, $0.frame.intersection(nsRect)) }
+            .filter { !$1.isNull && !$1.isEmpty }
+            .max(by: { $0.1.width * $0.1.height < $1.1.width * $1.1.height })?
+            .0
     }
 }
